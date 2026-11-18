@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoBox AI — Cardboard Recycling Classifier & Guide</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for crisp eco/recycling icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- TensorFlow.js and Teachable Machine Image Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <!-- Custom Tailwind Configuration for Eco & Kraft Palette -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        kraft: {
+                            50: '#FAF8F5',
+                            100: '#F3EDE4',
+                            200: '#E6D8C5',
+                            300: '#D4BC9C',
+                            400: '#C19A6B',
+                            500: '#A67C52',
+                            600: '#8B5A2B',
+                            700: '#6D4520',
+                            800: '#523318',
+                            900: '#3A2411',
+                        },
+                        forest: {
+                            50: '#F1F8F2',
+                            100: '#DCF0DF',
+                            200: '#BCE0C2',
+                            300: '#8EC999',
+                            400: '#5BAE6B',
+                            500: '#388E3C',
+                            600: '#2E7D32',
+                            700: '#1B5E20',
+                            800: '#144718',
+                            900: '#0D3110',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-kraft-50 text-stone-800 antialiased selection:bg-forest-200 selection:text-forest-900">
+
+    <!-- Sticky Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-kraft-50/95 backdrop-blur-md border-b border-kraft-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Logo -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-forest-600 text-white flex items-center justify-center shadow-sm group-hover:bg-forest-700 transition-colors">
+                        <i class="fa-solid fa-recycle text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="font-display font-extrabold text-xl tracking-tight text-stone-900">EcoBox<span class="text-forest-600">AI</span></span>
+                        <span class="hidden sm:inline-block ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-kraft-200 text-kraft-800">Cardboard Classifier</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Navigation Links -->
+                <nav class="hidden md:flex items-center gap-1 lg:gap-2 text-sm font-medium">
+                    <a href="#scanner" class="px-3 py-2 rounded-lg bg-forest-600 text-white hover:bg-forest-700 transition-colors flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-camera"></i> AI Scanner
+                    </a>
+                    <a href="#purpose" class="px-3 py-2 rounded-lg text-stone-700 hover:bg-kraft-200/70 hover:text-stone-900 transition-colors">1. Purpose</a>
+                    <a href="#what-is-cardboard" class="px-3 py-2 rounded-lg text-stone-700 hover:bg-kraft-200/70 hover:text-stone-900 transition-colors">2. What It Is</a>
+                    <a href="#differences" class="px-3 py-2 rounded-lg text-stone-700 hover:bg-kraft-200/70 hover:text-stone-900 transition-colors">3. Recyclable vs. Not</a>
+                    <a href="#community" class="px-3 py-2 rounded-lg text-stone-700 hover:bg-kraft-200/70 hover:text-stone-900 transition-colors">4. Community Impact</a>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" aria-label="Toggle Menu" class="md:hidden p-2.5 rounded-xl text-stone-700 hover:bg-kraft-200 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Dropdown Navigation -->
+        <div id="mobile-menu" class="hidden md:hidden bg-kraft-100 border-b border-kraft-200 px-4 pt-2 pb-4 space-y-1">
+            <a href="#scanner" class="block px-3 py-2.5 rounded-xl bg-forest-600 text-white font-semibold">
+                <i class="fa-solid fa-camera mr-2"></i>AI Cardboard Scanner
+            </a>
+            <a href="#purpose" class="block px-3 py-2.5 rounded-xl text-stone-800 hover:bg-kraft-200 font-medium">1. Purpose of Recycling Cardboard</a>
+            <a href="#what-is-cardboard" class="block px-3 py-2.5 rounded-xl text-stone-800 hover:bg-kraft-200 font-medium">2. Identify What Cardboard Is</a>
+            <a href="#differences" class="block px-3 py-2.5 rounded-xl text-stone-800 hover:bg-kraft-200 font-medium">3. Recyclable vs. Non-Recyclable</a>
+            <a href="#community" class="block px-3 py-2.5 rounded-xl text-stone-800 hover:bg-kraft-200 font-medium">4. How It Helps the Community</a>
+        </div>
+    </header>
+
+    <!-- Hero & Interactive Teachable Machine Scanner Section -->
+    <section id="scanner" class="relative pt-8 pb-16 lg:pt-12 lg:pb-24 overflow-hidden">
+        <!-- Subtle Kraft Background Accents -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-forest-100 text-forest-800 text-xs sm:text-sm font-semibold mb-4 border border-forest-200">
+                    <span class="w-2 h-2 rounded-full bg-forest-600 animate-pulse"></span>
+                    Powered by Google Teachable Machine AI
+                </div>
+                <h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl text-stone-900 tracking-tight leading-tight mb-4">
+                    Smart Cardboard <span class="text-forest-600">Recycling</span> & Sorting Guide
+                </h1>
+                <p class="text-base sm:text-lg text-stone-600 leading-relaxed">
+                    Use our embedded AI vision scanner below to inspect cardboard items in real time via webcam or photo upload, and learn how proper sorting protects our planet and community.
+                </p>
+            </div>
+
+            <!-- Interactive AI Classifier Card -->
+            <div class="bg-white rounded-3xl shadow-xl border border-kraft-200 overflow-hidden max-w-5xl mx-auto">
+                <!-- Card Top Status Bar -->
+                <div class="bg-kraft-100/80 border-b border-kraft-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div id="model-status-dot" class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></div>
+                        <span id="model-status-text" class="text-sm font-semibold text-stone-700">Initializing Teachable Machine Model...</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-stone-500">
+                        <i class="fa-solid fa-link text-kraft-600"></i>
+                        <a href="https://teachablemachine.withgoogle.com/models/hHTNGE7_4/" target="_blank" rel="noopener noreferrer" class="underline hover:text-forest-700 truncate max-w-[230px] sm:max-w-xs">
+                            models/hHTNGE7_4/
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Main Scanner Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 sm:p-8">
+                    
+                    <!-- Left Column: Visual Viewport (Webcam / Uploaded Image) -->
+                    <div class="lg:col-span-6 flex flex-col">
+                        <div class="relative w-full aspect-square max-h-[380px] mx-auto bg-kraft-100 rounded-2xl border-2 border-dashed border-kraft-300 flex flex-col items-center justify-center overflow-hidden shadow-inner">
+                            
+                            <!-- Placeholder State -->
+                            <div id="scanner-placeholder" class="text-center p-6 flex flex-col items-center justify-center">
+                                <div class="w-16 h-16 rounded-2xl bg-kraft-200 text-kraft-700 flex items-center justify-center mb-4">
+                                    <i class="fa-solid fa-box-open text-3xl"></i>
+                                </div>
+                                <h3 class="font-display font-bold text-stone-800 text-lg mb-1">Ready to Scan Cardboard</h3>
+                                <p class="text-sm text-stone-500 max-w-xs">Start your camera or upload an image of a box, carton, or packaging to classify it.</p>
+                            </div>
+
+                            <!-- Webcam Canvas Container -->
+                            <div id="webcam-container" class="hidden w-full h-full flex items-center justify-center bg-stone-900"></div>
+
+                            <!-- Image Upload Preview -->
+                            <img id="uploaded-image-preview" alt="Uploaded cardboard sample" class="hidden w-full h-full object-contain bg-stone-900" />
+
+                            <!-- Live Scan Badge -->
+                            <div id="live-badge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-full bg-red-600/90 text-white text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow">
+                                <span class="w-2 h-2 rounded-full bg-white animate-ping"></span> LIVE
+                            </div>
+                        </div>
+
+                        <!-- Interactive Controls -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                            <button id="toggle-webcam-btn" disabled class="w-full py-3 px-4 rounded-xl bg-forest-600 hover:bg-forest-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                                <i class="fa-solid fa-video"></i>
+                                <span id="webcam-btn-label">Start Webcam</span>
+                            </button>
+
+                            <label for="image-upload-input" id="upload-label" class="w-full py-3 px-4 rounded-xl bg-kraft-200 hover:bg-kraft-300 text-stone-900 font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer text-center">
+                                <i class="fa-solid fa-upload text-kraft-700"></i>
+                                <span>Upload Photo</span>
+                            </label>
+                            <input type="file" id="image-upload-input" accept="image/*" class="hidden" disabled />
+                        </div>
+
+                        <!-- Permission / Error Message Box (No alert() used!) -->
+                        <div id="scanner-feedback-box" class="hidden mt-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-2.5">
+                            <i class="fa-solid fa-circle-info text-amber-600 mt-0.5"></i>
+                            <span id="scanner-feedback-text"></span>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Real-time Confidence Scores & Smart Guidance -->
+                    <div class="lg:col-span-6 flex flex-col justify-between bg-kraft-50 rounded-2xl p-5 sm:p-6 border border-kraft-200">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="font-display font-bold text-lg text-stone-900 flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-simple text-forest-600"></i>
+                                    AI Classification Results
+                                </h2>
+                                <span id="prediction-mode-tag" class="text-xs font-medium px-2.5 py-1 rounded-full bg-kraft-200 text-kraft-800">Waiting for input</span>
+                            </div>
+
+                            <!-- Dynamic Prediction Bars Container -->
+                            <div id="label-container" class="space-y-3.5 my-4">
+                                <div class="p-4 rounded-xl bg-white border border-kraft-200 text-sm text-stone-500 text-center">
+                                    Class probabilities will appear here once the model finishes loading and receives a webcam frame or uploaded image.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instant Actionable Recycling Advice Card -->
+                        <div id="instant-tip-card" class="mt-4 p-4 rounded-xl bg-white border border-kraft-200 shadow-sm">
+                            <div class="flex items-start gap-3">
+                                <div id="tip-icon-box" class="w-9 h-9 rounded-lg bg-forest-100 text-forest-700 flex items-center justify-center shrink-0 mt-0.5">
+                                    <i class="fa-solid fa-lightbulb"></i>
+                                </div>
+                                <div>
+                                    <h4 id="tip-title" class="font-display font-bold text-sm text-stone-900">Quick Sorting Tip</h4>
+                                    <p id="tip-description" class="text-xs sm:text-sm text-stone-600 mt-1 leading-relaxed">
+                                        Hold your cardboard item steadily in front of the camera or upload a clear, well-lit photo to check its classification.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Educational Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20 pb-24">
+
+        <!-- SECTION 1: What is the Purpose of Recycling Cardboard? -->
+        <section id="purpose" class="scroll-mt-24">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-forest-700 bg-forest-100 px-3 py-1 rounded-full">Section 01</span>
+                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl text-stone-900 mt-3">
+                        What is the Purpose of Recycling Cardboard?
+                    </h2>
+                </div>
+                <p class="text-stone-600 max-w-md text-sm sm:text-base">
+                    Cardboard is one of the most recoverable materials on Earth—recycling it turns everyday packaging back into valuable raw fiber.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1: Forest & Resource Conservation -->
+                <div class="bg-white rounded-2xl p-6 sm:p-7 border border-kraft-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-forest-100 text-forest-700 flex items-center justify-center text-xl mb-5">
+                        <i class="fa-solid fa-tree"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-xl text-stone-900 mb-2">Conserves Trees, Water & Energy</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed mb-4">
+                        Manufacturing recycled cardboard requires <strong>75% less energy</strong> and significantly less water than creating virgin cardboard from newly harvested wood pulp.
+                    </p>
+                    <div class="pt-3 border-t border-kraft-100 text-xs font-semibold text-forest-700 flex items-center gap-2">
+                        <i class="fa-solid fa-leaf"></i> 1 ton recycled saves ~17 mature trees
+                    </div>
+                </div>
+
+                <!-- Card 2: Cuts Landfill Waste & Methane -->
+                <div class="bg-white rounded-2xl p-6 sm:p-7 border border-kraft-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-kraft-200 text-kraft-700 flex items-center justify-center text-xl mb-5">
+                        <i class="fa-solid fa-earth-americas"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-xl text-stone-900 mb-2">Reduces Landfill & Methane Emissions</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed mb-4">
+                        When cardboard is buried in oxygen-starved landfills, it decomposes anaerobically and releases <strong>methane</strong>—a greenhouse gas far more potent than carbon dioxide.
+                    </p>
+                    <div class="pt-3 border-t border-kraft-100 text-xs font-semibold text-kraft-700 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> Lowers municipal landfill volume
+                    </div>
+                </div>
+
+                <!-- Card 3: Supports a Circular Economy -->
+                <div class="bg-white rounded-2xl p-6 sm:p-7 border border-kraft-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-forest-100 text-forest-700 flex items-center justify-center text-xl mb-5">
+                        <i class="fa-solid fa-arrows-spin"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-xl text-stone-900 mb-2">Powers a Circular Economy</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed mb-4">
+                        Wood fibers in corrugated boxes can be broken down, pulped, and remanufactured into new boxes, paper bags, and egg cartons <strong>5 to 7 times</strong> before fibers shorten.
+                    </p>
+                    <div class="pt-3 border-t border-kraft-100 text-xs font-semibold text-forest-700 flex items-center gap-2">
+                        <i class="fa-solid fa-rotate"></i> Closed-loop sustainable supply chain
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Identify What Cardboard Is -->
+        <section id="what-is-cardboard" class="scroll-mt-24 bg-kraft-100/70 rounded-3xl p-6 sm:p-10 lg:p-12 border border-kraft-200">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                <div class="lg:col-span-6 space-y-5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-kraft-800 bg-kraft-200 px-3 py-1 rounded-full">Section 02</span>
+                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl text-stone-900">
+                        Identify What Cardboard Is
+                    </h2>
+                    <p class="text-stone-700 leading-relaxed text-base">
+                        <strong>Cardboard</strong> is a heavy-duty, thick paper-based material manufactured primarily from processed wood pulp (cellulose fibers) and recycled paper fibers. Unlike standard office paper, cardboard is engineered for rigidity, cushioning, and structural strength.
+                    </p>
+                    <p class="text-stone-600 text-sm sm:text-base leading-relaxed">
+                        Recognizing the two main forms of cardboard helps you sort everyday household and shipping items accurately:
+                    </p>
+
+                    <div class="space-y-4 pt-2">
+                        <!-- Type A: Corrugated Fiberboard -->
+                        <div class="bg-white rounded-2xl p-5 border border-kraft-200 shadow-sm">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="w-8 h-8 rounded-lg bg-kraft-400 text-white flex items-center justify-center font-bold text-sm">A</span>
+                                <h3 class="font-display font-bold text-lg text-stone-900">Corrugated Fiberboard (Shipping Boxes)</h3>
+                            </div>
+                            <p class="text-sm text-stone-600 leading-relaxed">
+                                Made of three layers: an inside liner, an outside liner, and a wavy, arched middle layer called <strong>fluting</strong>. That fluted arch traps air, giving delivery and moving boxes superior crush resistance.
+                            </p>
+                        </div>
+
+                        <!-- Type B: Paperboard / Chipboard -->
+                        <div class="bg-white rounded-2xl p-5 border border-kraft-200 shadow-sm">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="w-8 h-8 rounded-lg bg-forest-600 text-white flex items-center justify-center font-bold text-sm">B</span>
+                                <h3 class="font-display font-bold text-lg text-stone-900">Paperboard / Chipboard (Cartons & Tubes)</h3>
+                            </div>
+                            <p class="text-sm text-stone-600 leading-relaxed">
+                                A single, dense, flat layer of compressed paper pulp without wavy fluting. Commonly used for cereal boxes, tissue boxes, shoeboxes, snack cartons, and paper towel cores.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Anatomy & Everyday Examples Card -->
+                <div class="lg:col-span-6">
+                    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-kraft-200 shadow-md">
+                        <h3 class="font-display font-bold text-lg text-stone-900 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-kraft-600"></i>
+                            Anatomy & Everyday Examples
+                        </h3>
+
+                        <!-- SVG Diagram of Corrugated Cardboard Layers -->
+                        <div class="bg-kraft-50 rounded-xl p-5 border border-kraft-200 mb-6">
+                            <svg viewBox="0 0 400 130" class="w-full h-auto" role="img" aria-label="Cross section of corrugated cardboard showing outer liner, wavy fluting, and inner liner">
+                                <!-- Top Liner -->
+                                <rect x="20" y="20" width="360" height="12" rx="3" fill="#C19A6B"/>
+                                <text x="200" y="14" text-anchor="middle" font-size="11" font-family="Inter, sans-serif" font-weight="600" fill="#523318">Outer Flat Kraft Liner</text>
+                                
+                                <!-- Wavy Fluting -->
+                                <path d="M22 65 Q 35 32, 48 65 T 74 65 T 100 65 T 126 65 T 152 65 T 178 65 T 204 65 T 230 65 T 256 65 T 282 65 T 308 65 T 334 65 T 360 65 T 378 52" fill="none" stroke="#8B5A2B" stroke-width="5" stroke-linecap="round"/>
+                                
+                                <!-- Bottom Liner -->
+                                <rect x="20" y="88" width="360" height="12" rx="3" fill="#C19A6B"/>
+                                <text x="200" y="117" text-anchor="middle" font-size="11" font-family="Inter, sans-serif" font-weight="600" fill="#523318">Wavy Fluted Medium + Inner Liner</text>
+                            </svg>
+                        </div>
+
+                        <!-- Common Cardboard Items Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
+                            <div class="p-3 rounded-xl bg-kraft-50 border border-kraft-200">
+                                <i class="fa-solid fa-box text-kraft-600 text-xl mb-1.5"></i>
+                                <p class="text-xs font-semibold text-stone-800">Shipping Boxes</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-kraft-50 border border-kraft-200">
+                                <i class="fa-solid fa-wheat-awn text-kraft-600 text-xl mb-1.5"></i>
+                                <p class="text-xs font-semibold text-stone-800">Cereal Cartons</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-kraft-50 border border-kraft-200">
+                                <i class="fa-solid fa-toilet-paper text-kraft-600 text-xl mb-1.5"></i>
+                                <p class="text-xs font-semibold text-stone-800">Cardboard Tubes</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-kraft-50 border border-kraft-200">
+                                <i class="fa-solid fa-shoe-prints text-kraft-600 text-xl mb-1.5"></i>
+                                <p class="text-xs font-semibold text-stone-800">Shoeboxes</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-kraft-50 border border-kraft-200">
+                                <i class="fa-solid fa-egg text-kraft-600 text-xl mb-1.5"></i>
+                                <p class="text-xs font-semibold text-stone-800">Molded Pulp Trays</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-kraft-50 border border-kraft-200">
+                                <i class="fa-solid fa-bag-shopping text-kraft-600 text-xl mb-1.5"></i>
+                                <p class="text-xs font-semibold text-stone-800">Kraft Paper Bags</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Differences Between Cardboard & Recyclable Cardboard -->
+        <section id="differences" class="scroll-mt-24">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <span class="text-xs font-bold uppercase tracking-wider text-forest-700 bg-forest-100 px-3 py-1 rounded-full">Section 03</span>
+                <h2 class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl text-stone-900 mt-3">
+                    Cardboard vs. Recyclable Cardboard
+                </h2>
+                <p class="text-stone-600 mt-3 text-sm sm:text-base">
+                    Not all cardboard can enter the recycling stream. Contamination from food grease, moisture, or plastic coatings ruins entire batches of paper pulp. Compare the key differences below:
+                </p>
+            </div>
+
+            <!-- Side-by-Side Comparison Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                
+                <!-- YES: Recyclable Cardboard -->
+                <div class="bg-white rounded-3xl border-2 border-forest-500 shadow-md overflow-hidden flex flex-col">
+                    <div class="bg-forest-600 text-white px-6 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-circle-check text-2xl"></i>
+                            <div>
+                                <h3 class="font-display font-bold text-lg">Recyclable Cardboard</h3>
+                                <p class="text-xs text-forest-100">Clean, dry, uncoated wood-fiber products</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold uppercase bg-forest-800 px-2.5 py-1 rounded-full">Accepted</span>
+                    </div>
+
+                    <div class="p-6 space-y-4 flex-1">
+                        <ul class="space-y-3.5 text-sm text-stone-700">
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-check text-forest-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Clean Corrugated Boxes:</strong> E-commerce delivery boxes, moving boxes, and clean retail shipping cartons.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-check text-forest-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Dry Paperboard Packaging:</strong> Cereal boxes, pasta boxes, tissue boxes (remove plastic film window), and soda fridge packs.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-check text-forest-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Cardboard Cores & Tubes:</strong> Inner rolls from toilet paper, paper towels, and wrapping paper.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-check text-forest-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Clean Pizza Box Lids:</strong> If the bottom is greasy, tear off the clean top lid and recycle just the clean half!
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- NO: Non-Recyclable / Contaminated Cardboard -->
+                <div class="bg-white rounded-3xl border-2 border-red-400 shadow-md overflow-hidden flex flex-col">
+                    <div class="bg-red-600 text-white px-6 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                            <div>
+                                <h3 class="font-display font-bold text-lg">Non-Recyclable / Contaminated</h3>
+                                <p class="text-xs text-red-100">Soiled, wet, waxed, or plastic-lined items</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold uppercase bg-red-800 px-2.5 py-1 rounded-full">Trash / Compost</span>
+                    </div>
+
+                    <div class="p-6 space-y-4 flex-1">
+                        <ul class="space-y-3.5 text-sm text-stone-700">
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-xmark text-red-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Greasy or Food-Soiled Boxes:</strong> Oil-soaked pizza box bottoms and takeout containers—oil prevents paper fibers from bonding during pulping.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-xmark text-red-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Wet, Soggy, or Moldy Cardboard:</strong> Water weakens fibers and encourages mold growth that contaminates clean recycling bales.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-xmark text-red-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Wax-Coated Produce & Freezer Boxes:</strong> Shiny wax or heavy plastic coatings (e.g., frozen food boxes, waxy fruit crates) cannot separate in standard paper mills.
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i class="fa-solid fa-xmark text-red-600 mt-1"></i>
+                                <div>
+                                    <strong class="text-stone-900">Foil-Lined or Glitter Packaging:</strong> Metallic laminated gift boxes and multi-layer foil drink pouches.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3-Step Preparation Checklist Banner -->
+            <div class="mt-8 bg-kraft-200/70 rounded-2xl p-6 border border-kraft-300">
+                <h4 class="font-display font-bold text-base sm:text-lg text-stone-900 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-forest-700"></i>
+                    3 Golden Rules Before Placing Cardboard in the Bin
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-white/90 p-4 rounded-xl border border-kraft-200">
+                        <span class="font-bold text-forest-700 block mb-1">1. Empty & Strip</span>
+                        Remove all packing peanuts, bubble wrap, foam inserts, and excessive plastic packing tape.
+                    </div>
+                    <div class="bg-white/90 p-4 rounded-xl border border-kraft-200">
+                        <span class="font-bold text-forest-700 block mb-1">2. Flatten Completely</span>
+                        Break down boxes flat to save up to 70% more space in collection bins and recycling trucks.
+                    </div>
+                    <div class="bg-white/90 p-4 rounded-xl border border-kraft-200">
+                        <span class="font-bold text-forest-700 block mb-1">3. Keep Dry & Covered</span>
+                        Store flattened cardboard indoors or keep bin lids closed so rain does not ruin the fibers.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: What Helps the Community -->
+        <section id="community" class="scroll-mt-24">
+            <div class="bg-forest-900 text-white rounded-3xl p-6 sm:p-10 lg:p-12 shadow-xl relative overflow-hidden">
+                <div class="max-w-3xl mb-10">
+                    <span class="text-xs font-bold uppercase tracking-wider text-forest-200 bg-forest-800 px-3 py-1 rounded-full border border-forest-700">Section 04</span>
+                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl mt-3">
+                        How Cardboard Recycling Helps the Community
+                    </h2>
+                    <p class="text-forest-100/90 mt-3 text-sm sm:text-base leading-relaxed">
+                        Every flattened box placed in a recycling bin creates ripple effects that strengthen local economies, keep streets clean, and bring neighbors together.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- Community Benefit 1 -->
+                    <div class="bg-forest-800/80 border border-forest-700 rounded-2xl p-5 backdrop-blur-sm">
+                        <div class="w-11 h-11 rounded-xl bg-kraft-400 text-stone-950 flex items-center justify-center text-lg mb-4">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-lg text-white mb-2">Creates Local Green Jobs</h3>
+                        <p class="text-forest-100/85 text-sm leading-relaxed">
+                            Sorting centers, hauling logistics, and regional paper mills employ far more local workers per ton of material than landfill operations.
+                        </p>
+                    </div>
+
+                    <!-- Community Benefit 2 -->
+                    <div class="bg-forest-800/80 border border-forest-700 rounded-2xl p-5 backdrop-blur-sm">
+                        <div class="w-11 h-11 rounded-xl bg-kraft-400 text-stone-950 flex items-center justify-center text-lg mb-4">
+                            <i class="fa-solid fa-broom"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-lg text-white mb-2">Cleaner Neighborhoods</h3>
+                        <p class="text-forest-100/85 text-sm leading-relaxed">
+                            Organized cardboard drop-offs and curbside collection prevent overflowing dumpsters, windblown street litter, and urban pest habitats.
+                        </p>
+                    </div>
+
+                    <!-- Community Benefit 3 -->
+                    <div class="bg-forest-800/80 border border-forest-700 rounded-2xl p-5 backdrop-blur-sm">
+                        <div class="w-11 h-11 rounded-xl bg-kraft-400 text-stone-950 flex items-center justify-center text-lg mb-4">
+                            <i class="fa-solid fa-coins"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-lg text-white mb-2">Lowers Municipal Costs</h3>
+                        <p class="text-forest-100/85 text-sm leading-relaxed">
+                            Diverting bulky boxes from landfills reduces municipal tipping fees and generates revenue from recovered fiber sales that funds public services.
+                        </p>
+                    </div>
+
+                    <!-- Community Benefit 4 -->
+                    <div class="bg-forest-800/80 border border-forest-700 rounded-2xl p-5 backdrop-blur-sm">
+                        <div class="w-11 h-11 rounded-xl bg-kraft-400 text-stone-950 flex items-center justify-center text-lg mb-4">
+                            <i class="fa-solid fa-hands-holding-circle"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-lg text-white mb-2">Shared Civic Pride</h3>
+                        <p class="text-forest-100/85 text-sm leading-relaxed">
+                            School recycling drives, barangay/neighborhood eco-hubs, and community reuse swaps foster environmental education and collective stewardship.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-kraft-200/70 border-t border-kraft-300 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-stone-600">
+            <div class="flex items-center gap-2 font-semibold text-stone-800">
+                <i class="fa-solid fa-recycle text-forest-600"></i>
+                <span>EcoBox AI — Cardboard Recycling Education & Classifier</span>
+            </div>
+            <p class="text-xs text-stone-500 text-center sm:text-right">
+                Model Endpoint: <span class="font-mono">https://teachablemachine.withgoogle.com/models/hHTNGE7_4/</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Teachable Machine Integration & Interactive UI Logic -->
+    <script>
+        // =========================================================================
+        // 1. CONFIGURATION & GLOBAL STATE
+        // =========================================================================
+        const MODEL_BASE_URL = "https://teachablemachine.withgoogle.com/models/hHTNGE7_4/";
+        
+        let model = null;
+        let webcam = null;
+        let maxPredictions = 0;
+        let isWebcamRunning = false;
+        let animationFrameId = null;
+
+        // DOM References
+        const statusDot = document.getElementById("model-status-dot");
+        const statusText = document.getElementById("model-status-text");
+        const toggleWebcamBtn = document.getElementById("toggle-webcam-btn");
+        const webcamBtnLabel = document.getElementById("webcam-btn-label");
+        const imageUploadInput = document.getElementById("image-upload-input");
+        const scannerPlaceholder = document.getElementById("scanner-placeholder");
+        const webcamContainer = document.getElementById("webcam-container");
+        const uploadedImagePreview = document.getElementById("uploaded-image-preview");
+        const liveBadge = document.getElementById("live-badge");
+        const labelContainer = document.getElementById("label-container");
+        const predictionModeTag = document.getElementById("prediction-mode-tag");
+        const feedbackBox = document.getElementById("scanner-feedback-box");
+        const feedbackText = document.getElementById("scanner-feedback-text");
+        const tipTitle = document.getElementById("tip-title");
+        const tipDescription = document.getElementById("tip-description");
+        const tipIconBox = document.getElementById("tip-icon-box");
+
+        // =========================================================================
+        // 2. MOBILE MENU TOGGLE
+        // =========================================================================
+        const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+        const mobileMenu = document.getElementById("mobile-menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            mobileMenu.classList.toggle("hidden");
+        });
+
+        // Close mobile menu when a link is clicked
+        mobileMenu.querySelectorAll("a").forEach(link => {
+            link.addEventListener("click", () => {
+                mobileMenu.classList.add("hidden");
+            });
+        });
+
+        // =========================================================================
+        // 3. HELPER FUNCTIONS FOR STATUS & FEEDBACK
+        // =========================================================================
+        function showFeedback(message, isError = false) {
+            feedbackText.textContent = message;
+            feedbackBox.classList.remove("hidden");
+            if (isError) {
+                feedbackBox.className = "mt-3 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs sm:text-sm flex items-start gap-2.5";
+            } else {
+                feedbackBox.className = "mt-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-2.5";
+            }
+        }
+
+        function hideFeedback() {
+            feedbackBox.classList.add("hidden");
+        }
+
+        /**
+         * Updates the instant sorting advice card based on the top predicted class name.
+         */
+        function updateSmartTip(topClassName, confidencePercent) {
+            const lower = topClassName.toLowerCase();
+
+            if (confidencePercent < 55) {
+                tipTitle.textContent = "Low Confidence — Adjust Lighting or Angle";
+                tipDescription.textContent = `Top match is "${topClassName}" (${confidencePercent}%). Move closer or ensure the cardboard surface is clearly visible.`;
+                tipIconBox.className = "w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5";
+                tipIconBox.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+                return;
+            }
+
+            if (lower.includes("non") || lower.includes("not") || lower.includes("dirty") || lower.includes("greasy") || lower.includes("wet") || lower.includes("trash") || lower.includes("contaminated")) {
+                tipTitle.textContent = `Detected: ${topClassName} (${confidencePercent}%) — Do Not Recycle`;
+                tipDescription.textContent = "This item appears soiled, wet, or coated. Dispose of contaminated cardboard in regular waste or compost clean food-soiled paper if locally permitted.";
+                tipIconBox.className = "w-9 h-9 rounded-lg bg-red-100 text-red-700 flex items-center justify-center shrink-0 mt-0.5";
+                tipIconBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if (lower.includes("recyclable") || lower.includes("cardboard") || lower.includes("clean") || lower.includes("box")) {
+                tipTitle.textContent = `Detected: ${topClassName} (${confidencePercent}%) — Ready to Recycle!`;
+                tipDescription.textContent = "Great! Make sure any plastic packing tape or bubble wrap is removed, flatten the box completely, and keep it dry in your recycling bin.";
+                tipIconBox.className = "w-9 h-9 rounded-lg bg-forest-100 text-forest-700 flex items-center justify-center shrink-0 mt-0.5";
+                tipIconBox.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+                tipTitle.textContent = `Top Classification: ${topClassName} (${confidencePercent}%)`;
+                tipDescription.textContent = "Check Section 3 below to verify that the item is dry, free of food grease, and has no wax or plastic lamination before recycling.";
+                tipIconBox.className = "w-9 h-9 rounded-lg bg-kraft-200 text-kraft-800 flex items-center justify-center shrink-0 mt-0.5";
+                tipIconBox.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
+            }
+        }
+
+        // =========================================================================
+        // 4. LOAD TEACHABLE MACHINE MODEL ON PAGE INIT
+        // =========================================================================
+        async function loadTeachableMachineModel() {
+            const modelURL = MODEL_BASE_URL + "model.json";
+            const metadataURL = MODEL_BASE_URL + "metadata.json";
+
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                // Update UI status to Ready
+                statusDot.className = "w-3 h-3 rounded-full bg-forest-500";
+                statusText.textContent = `AI Model Ready (${maxPredictions} classes loaded)`;
+                
+                // Enable buttons
+                toggleWebcamBtn.disabled = false;
+                imageUploadInput.disabled = false;
+
+                // Build initial empty probability bars for each class
+                const classLabels = model.getClassLabels();
+                renderPredictionBars(classLabels.map(label => ({ className: label, probability: 0 })));
+            } catch (error) {
+                console.error("Failed to load Teachable Machine model:", error);
+                statusDot.className = "w-3 h-3 rounded-full bg-red-500";
+                statusText.textContent = "Error loading Teachable Machine model";
+                showFeedback(
+                    "Unable to fetch the Teachable Machine model from https://teachablemachine.withgoogle.com/models/hHTNGE7_4/. Please check your internet connection or verify that the model is publicly shared.",
+                    true
+                );
+            }
+        }
+
+        // =========================================================================
+        // 5. RENDER PREDICTION PROBABILITY BARS
+        // =========================================================================
+        function renderPredictionBars(predictions) {
+            // Sort predictions highest confidence first for clear readability
+            const sorted = [...predictions].sort((a, b) => b.probability - a.probability);
+            
+            labelContainer.innerHTML = "";
+
+            sorted.forEach((pred, index) => {
+                const percentage = Math.round(pred.probability * 100);
+                const isTop = index === 0 && percentage > 0;
+                
+                const barColor = isTop ? "bg-forest-600" : "bg-kraft-400";
+                const cardBorder = isTop ? "border-forest-400 bg-forest-50/40" : "border-kraft-200 bg-white";
+
+                const row = document.createElement("div");
+                row.className = `p-3.5 rounded-xl border ${cardBorder} transition-all`;
+                row.innerHTML = `
+                    <div class="flex items-center justify-between text-sm font-semibold mb-1.5">
+                        <span class="text-stone-800 flex items-center gap-2">
+                            ${isTop ? '<i class="fa-solid fa-star text-forest-600 text-xs"></i>' : ''}
+                            ${escapeHTML(pred.className)}
+                        </span>
+                        <span class="font-mono ${isTop ? 'text-forest-700 font-bold' : 'text-stone-600'}">${percentage}%</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-kraft-100 rounded-full overflow-hidden">
+                        <div class="h-full ${barColor} rounded-full transition-all duration-150" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                labelContainer.appendChild(row);
+            });
+
+            if (sorted.length > 0 && sorted[0].probability > 0.05) {
+                updateSmartTip(sorted[0].className, Math.round(sorted[0].probability * 100));
+            }
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // =========================================================================
+        // 6. WEBCAM START / STOP & REAL-TIME PREDICTION LOOP
+        // =========================================================================
+        async function startWebcam() {
+            if (!model) return;
+            hideFeedback();
+
+            try {
+                toggleWebcamBtn.disabled = true;
+                webcamBtnLabel.textContent = "Starting Camera...";
+
+                const flip = true; // Flip horizontally for natural webcam mirror view
+                webcam = new tmImage.Webcam(360, 360, flip);
+                await webcam.setup(); // Requests camera permission
+                await webcam.play();
+
+                isWebcamRunning = true;
+
+                // Update viewport visibility
+                scannerPlaceholder.classList.add("hidden");
+                uploadedImagePreview.classList.add("hidden");
+                webcamContainer.classList.remove("hidden");
+                liveBadge.classList.remove("hidden");
+
+                webcamContainer.innerHTML = "";
+                webcam.canvas.className = "w-full h-full object-cover";
+                webcamContainer.appendChild(webcam.canvas);
+
+                // Update button to Stop mode
+                toggleWebcamBtn.disabled = false;
+                toggleWebcamBtn.className = "w-full py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+                toggleWebcamBtn.innerHTML = '<i class="fa-solid fa-video-slash"></i><span id="webcam-btn-label">Stop Webcam</span>';
+                
+                predictionModeTag.textContent = "Live Webcam Feed";
+                predictionModeTag.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-forest-100 text-forest-800";
+
+                animationFrameId = window.requestAnimationFrame(webcamLoop);
+            } catch (err) {
+                console.error("Webcam access error:", err);
+                isWebcamRunning = false;
+                toggleWebcamBtn.disabled = false;
+                resetWebcamButtonUI();
+                showFeedback(
+                    "Camera access was blocked or unavailable. You can allow camera permissions in your browser settings or use the 'Upload Photo' button to classify an image instead.",
+                    false
+                );
+            }
+        }
+
+        function stopWebcam() {
+            isWebcamRunning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            if (webcam) {
+                webcam.stop();
+                webcam = null;
+            }
+
+            liveBadge.classList.add("hidden");
+            webcamContainer.classList.add("hidden");
+            webcamContainer.innerHTML = "";
+
+            if (uploadedImagePreview.classList.contains("hidden")) {
+                scannerPlaceholder.classList.remove("hidden");
+                predictionModeTag.textContent = "Camera stopped";
+                predictionModeTag.className = "text-xs font-medium px-2.5 py-1 rounded-full bg-kraft-200 text-kraft-800";
+            }
+
+            resetWebcamButtonUI();
+        }
+
+        function resetWebcamButtonUI() {
+            toggleWebcamBtn.className = "w-full py-3 px-4 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer";
+            toggleWebcamBtn.innerHTML = '<i class="fa-solid fa-video"></i><span id="webcam-btn-label">Start Webcam</span>';
+        }
+
+        async function webcamLoop() {
+            if (!isWebcamRunning || !webcam) return;
+            webcam.update();
+            await predictOnElement(webcam.canvas);
+            animationFrameId = window.requestAnimationFrame(webcamLoop);
+        }
+
+        toggleWebcamBtn.addEventListener("click", () => {
+            if (isWebcamRunning) {
+                stopWebcam();
+            } else {
+                startWebcam();
+            }
+        });
+
+        // =========================================================================
+        // 7. IMAGE FILE UPLOAD CLASSIFICATION
+        // =========================================================================
+        imageUploadInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (!file || !model) return;
+
+            hideFeedback();
+
+            // Stop webcam if currently running so uploaded photo stays visible
+            if (isWebcamRunning) {
+                stopWebcam();
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImagePreview.src = e.target.result;
+                uploadedImagePreview.onload = async function() {
+                    scannerPlaceholder.classList.add("hidden");
+                    webcamContainer.classList.add("hidden");
+                    liveBadge.classList.add("hidden");
+                    uploadedImagePreview.classList.remove("hidden");
+
+                    predictionModeTag.textContent = "Uploaded Image";
+                    predictionModeTag.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-kraft-200 text-kraft-900";
+
+                    await predictOnElement(uploadedImagePreview);
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        async function predictOnElement(imageOrCanvas) {
+            if (!model) return;
+            try {
+                const predictions = await model.predict(imageOrCanvas);
+                renderPredictionBars(predictions);
+            } catch (err) {
+                console.error("Prediction error:", err);
+            }
+        }
+
+        // Start loading the Teachable Machine model as soon as the window loads
+        window.addEventListener("load", loadTeachableMachineModel);
+    </script>
+</body>
+</html>
